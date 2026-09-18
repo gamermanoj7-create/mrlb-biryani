@@ -1,8 +1,0 @@
- "use client";
-import {useEffect,useState} from "react";
-const API=process.env.NEXT_PUBLIC_API_URL||"http://localhost:4000";
-export default function Admin(){
- const [key,setKey]=useState("");const [orders,setOrders]=useState([]);const [error,setError]=useState("");
- const load=async()=>{try{const r=await fetch(API+"/admin/orders",{headers:{"x-admin-key":key}});const d=await r.json();if(!r.ok)throw Error(d.error);setOrders(d);setError("")}catch(e){setError(e.message)}};
- return <main style={{fontFamily:"Arial",padding:24,maxWidth:1100,margin:"auto"}}><h1>MRLB Biryani — Admin Orders</h1><p>Customer name, phone, address and complete order details.</p><div style={{display:"flex",gap:8,marginBottom:20}}><input type="password" placeholder="Admin key" value={key} onChange={e=>setKey(e.target.value)} style={{padding:12,flex:1}}/><button onClick={load} style={{padding:"12px 20px"}}>Load Orders</button></div>{error&&<p style={{color:"crimson"}}>{error}</p>}<div style={{display:"grid",gap:16}}>{orders.map(o=><article key={o.id} style={{background:"#fff8ef",padding:18,borderRadius:14,border:"1px solid #ead8c2"}}><h2>{o.orderNumber} — ₹{o.total}</h2><b>{o.user?.name||"Customer"}</b><p>📞 {o.user?.phone}</p><p>📍 {o.address?.line1}</p><p><b>Items:</b> {o.items.map(i=>`${i.productName} (${i.variantName}) × ${i.quantity}`).join(", ")}</p><p>Payment: {o.paymentMethod} | Status: {o.status}</p></article>)}</div></main>
-}

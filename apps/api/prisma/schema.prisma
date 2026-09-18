@@ -1,0 +1,187 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum UserRole { CUSTOMER ADMIN DRIVER }
+enum OrderStatus { RECEIVED ACCEPTED PREPARING READY OUT_FOR_DELIVERY DELIVERED CANCELLED }
+enum PaymentStatus { PENDING PAID FAILED REFUNDED COD_PENDING COD_COLLECTED }
+enum PolicyType { TERMS PRIVACY CANCELLATION REFUND DELIVERY CUSTOMER_AGREEMENT }
+
+model User {
+  id String @id @default(cuid())
+  name String?
+  phone String? @unique
+  email String? @unique
+  passwordHash String?
+  role UserRole @default(CUSTOMER)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  addresses Address[]
+  orders Order[]
+  agreements AgreementAcceptance[]
+  supportTickets SupportTicket[]
+}
+
+model Category {
+  id String @id @default(cuid())
+  name String
+  active Boolean @default(true)
+  products Product[]
+}
+
+model Product {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  description String
+  imageUrl String?
+  active Boolean @default(true)
+  featured Boolean @default(false)
+  popular Boolean @default(false)
+  categoryId String
+  category Category @relation(fields:[categoryId], references:[id])
+  variants ProductVariant[]
+  addons Addon[]
+  createdAt DateTime @default(now())
+}
+
+model ProductVariant {
+  id String @id @default(cuid())
+  name String
+  price Int
+  active Boolean @default(true)
+  productId String
+  product Product @relation(fields:[productId], references:[id])
+}
+
+model Addon {
+  id String @id @default(cuid())
+  name String
+  price Int
+  active Boolean @default(true)
+  productId String
+  product Product @relation(fields:[productId], references:[id])
+}
+
+model Address {
+  id String @id @default(cuid())
+  userId String
+  label String
+  line1 String
+  city String
+  state String
+  postalCode String
+  lat Float?
+  lng Float?
+  instructions String?
+  isDefault Boolean @default(false)
+  user User @relation(fields:[userId], references:[id])
+  orders Order[]
+}
+
+model Order {
+  id String @id @default(cuid())
+  orderNumber String @unique
+  userId String
+  addressId String
+  status OrderStatus @default(RECEIVED)
+  paymentStatus PaymentStatus @default(PENDING)
+  subtotal Int
+  deliveryCharge Int
+  tax Int
+  discount Int
+  total Int
+  couponCode String?
+  agreementVersion String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId], references:[id])
+  address Address @relation(fields:[addressId], references:[id])
+  items OrderItem[]
+  payment Payment?
+  delivery Delivery?
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+  orderId String
+  productName String
+  variantName String
+  quantity Int
+  unitPrice Int
+  addonTotal Int @default(0)
+  order Order @relation(fields:[orderId], references:[id])
+}
+
+model Payment {
+  id String @id @default(cuid())
+  orderId String @unique
+  gateway String?
+  gatewayOrderId String?
+  gatewayPaymentId String?
+  status PaymentStatus
+  amount Int
+  createdAt DateTime @default(now())
+  order Order @relation(fields:[orderId], references:[id])
+}
+
+model Delivery {
+  id String @id @default(cuid())
+  orderId String @unique
+  driverId String?
+  status String @default("UNASSIGNED")
+  lat Float?
+  lng Float?
+  updatedAt DateTime @updatedAt
+  order Order @relation(fields:[orderId], references:[id])
+}
+
+model Coupon {
+  id String @id @default(cuid())
+  code String @unique
+  type String
+  value Int
+  minOrder Int @default(0)
+  active Boolean @default(true)
+  expiresAt DateTime?
+}
+
+model Policy {
+  id String @id @default(cuid())
+  type PolicyType
+  version String
+  title String
+  content String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+
+model AgreementAcceptance {
+  id String @id @default(cuid())
+  userId String
+  orderId String?
+  policyType PolicyType
+  version String
+  acceptedAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id])
+}
+
+model SupportTicket {
+  id String @id @default(cuid())
+  userId String
+  orderId String?
+  subject String
+  message String
+  status String @default("OPEN")
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  actorId String?
+  action String
+  entity String
+  entityId String?
+  metadata Json?
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,126 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum OrderStatus { RECEIVED ACCEPTED PREPARING READY OUT_FOR_DELIVERY DELIVERED CANCELLED }
+enum PaymentStatus { PENDING PAID FAILED REFUNDED COD_PENDING COD_COLLECTED }
+enum PaymentMethod { COD UPI }
+
+model User {
+  id String @id @default(cuid())
+  name String?
+  phone String @unique
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  addresses Address[]
+  orders Order[]
+}
+
+model Category {
+  id String @id @default(cuid())
+  name String
+  active Boolean @default(true)
+  products Product[]
+}
+
+model Product {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  description String
+  imageUrl String?
+  active Boolean @default(true)
+  featured Boolean @default(false)
+  popular Boolean @default(false)
+  categoryId String
+  category Category @relation(fields:[categoryId],references:[id])
+  variants ProductVariant[]
+  addons Addon[]
+  createdAt DateTime @default(now())
+}
+
+model ProductVariant {
+  id String @id @default(cuid())
+  name String
+  price Int
+  active Boolean @default(true)
+  productId String
+  product Product @relation(fields:[productId],references:[id])
+}
+
+model Addon {
+  id String @id @default(cuid())
+  name String
+  price Int
+  active Boolean @default(true)
+  productId String
+  product Product @relation(fields:[productId],references:[id])
+}
+
+model Address {
+  id String @id @default(cuid())
+  userId String
+  label String
+  line1 String
+  city String
+  state String
+  postalCode String
+  lat Float?
+  lng Float?
+  instructions String?
+  isDefault Boolean @default(false)
+  user User @relation(fields:[userId],references:[id])
+  orders Order[]
+}
+
+model Order {
+  id String @id @default(cuid())
+  orderNumber String @unique
+  idempotencyKey String @unique
+  userId String
+  addressId String
+  status OrderStatus @default(RECEIVED)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod @default(COD)
+  subtotal Int
+  deliveryCharge Int @default(0)
+  tax Int @default(0)
+  discount Int @default(0)
+  total Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId],references:[id])
+  address Address @relation(fields:[addressId],references:[id])
+  items OrderItem[]
+  payment Payment?
+  delivery Delivery?
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+  orderId String
+  productId String?
+  productName String
+  variantName String
+  quantity Int
+  unitPrice Int
+  order Order @relation(fields:[orderId],references:[id])
+}
+
+model Payment {
+  id String @id @default(cuid())
+  orderId String @unique
+  status PaymentStatus
+  amount Int
+  createdAt DateTime @default(now())
+  order Order @relation(fields:[orderId],references:[id])
+}
+
+model Delivery {
+  id String @id @default(cuid())
+  orderId String @unique
+  status String @default("UNASSIGNED")
+  lat Float?
+  lng Float?
+  updatedAt DateTime @updatedAt
+  order Order @relation(fields:[orderId],references:[id])
+}

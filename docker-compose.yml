@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mrlb_biryani
+      POSTGRES_USER: mrlb
+      POSTGRES_PASSWORD: change-this-password
+    ports: ["5432:5432"]
+    volumes: [mrlb_pg:/var/lib/postgresql/data]
+volumes:
+  mrlb_pg:
